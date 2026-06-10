@@ -1,0 +1,6 @@
+states=28 (expect 28)
+embedded JSON ok: 28 steps, 4 pavilions, grid 5x5
+wrote rosebot_ui.html (16219 bytes)
+
+PROBLEMS=0
+RESULT=PASS

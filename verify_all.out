@@ -1,0 +1,7 @@
+PASS  imports (all modules + main)
+PASS  A* external loop -> cost 27
+PASS  A* in-engine FStrategy -> cost 27
+PASS  DFS tree generation
+PASS  no Arabic in code
+
+OVERALL=PASS

@@ -1,0 +1,21 @@
+initial_needs total = 15 (expect 15)
+enumerate_loads -> 11 loads
+  LOAD Goliat:gold x2
+  LOAD Goliat:gold x2 + Goliat:lightpink x2
+  LOAD Goliat:lightpink x2
+  LOAD Orchid:pink x1 + Orchid:purple x2
+  LOAD Orchid:pink x1 + Rose:pink x1
+  LOAD Orchid:purple x2
+  LOAD Rose:pink x1 + Rose:red x2 + Rose:white x1
+  LOAD Rose:red x2 + Tulip:red x2
+  LOAD Rose:white x1
+  LOAD Tulip:red x3 + Tulip:yellow x1
+  LOAD Tulip:yellow x1
+unloadable@P1 = [('pink', 1), ('red', 2)] (expect [('pink',1),('red',2)])
+root@START ops = ['move down', 'move left', 'move right']
+warehouse counts moves=4 loads=11 unloads=0 (expect 4,11,0)
+P1 unload children = 1; load_after=(); needs_after=11 (expect 1, (), 11)
+wrong-type Tulip at Rose pavilion -> no unload (correct)
+
+PROBLEMS=0
+RESULT=PASS
