@@ -1,0 +1,29 @@
+# ── Python build/cache ─────────────────────────────
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# ── Virtual environment ────────────────────────────
+.venv/
+
+# ── Generated artifacts (recreated on every run) ───
+*.out                 # check_*/verify_all reports
+rosebot_ui.html       # produced by `main.py web`
+
+# ── Tests / self-check scripts (not needed to run) ─
+check_stages.py
+check_astar.py
+check_strategy.py
+check_dfs.py
+check_ui.py
+verify_all.py
+
+# ── Documentation (not needed to run) ──────────────
+docs/
+
+# ── Internal guidance / assignment brief ───────────
+CLAUDE.md
+وظيفة_نظم_قواعد_المعرفة.pdf

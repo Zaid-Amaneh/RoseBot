@@ -1,0 +1,9 @@
+[project]
+name = "rosebot"
+version = "0.1.0"
+description = "Smart Flower Exhibition — bouquet-distribution robot modeled as a rule-based expert system (experta)."
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+dependencies = [
+    "experta>=1.9.4",
+]
