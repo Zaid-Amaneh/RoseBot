@@ -1,0 +1,12 @@
+{
+  "name": "Level 2 — Wider Garden (6x6)",
+  "grid": { "w": 6, "h": 6 },
+  "warehouse": [3, 3],
+  "robot_start": [1, 1],
+  "pavilions": [
+    { "id": "P1", "type": "Rose",   "pos": [6, 1], "needs": { "red": 1, "crimson": 2 } },
+    { "id": "P2", "type": "Tulip",  "pos": [2, 6], "needs": { "orange": 2, "green": 1, "violet": 1 } },
+    { "id": "P3", "type": "Orchid", "pos": [5, 5], "needs": { "white": 2, "pink": 2 } },
+    { "id": "P4", "type": "Goliat", "pos": [1, 4], "needs": { "yellow": 3 } }
+  ]
+}

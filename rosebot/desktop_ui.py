@@ -42,7 +42,7 @@ def _solve():
 class RoseBotApp(tk.Tk):
     def __init__(self, states, total_cost):
         super().__init__()
-        self.title("RoseBot — Smart Flower Exhibition")
+        self.title(f"RoseBot — {d.LEVEL_NAME}")
         self.configure(bg=BG)
         self.states = states
         self.total_cost = total_cost

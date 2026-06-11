@@ -10,6 +10,8 @@ no search algorithm here — ``engine.run()`` *is* the search.
 - printing / path helpers read the resulting ``Node`` facts.
 """
 
+import time
+
 from rosebot import domain as d
 from rosebot.facts import Node, Solution, ShowTree, ShowSolution
 from rosebot.engine import RoseBotEngine
@@ -85,6 +87,22 @@ def print_solution(engine) -> bool:
     return True
 
 
+def print_solve_time(engine) -> None:
+    elapsed = getattr(engine, "solve_seconds", None)
+    if elapsed is not None:
+        print(f"(solve time: {elapsed:.6f} seconds)")
+
+
+def _run_timed(engine, max_nodes=None):
+    started = time.perf_counter()
+    if max_nodes is None:
+        engine.run()
+    else:
+        engine.run(max_nodes)
+    engine.solve_seconds = time.perf_counter() - started
+    return engine
+
+
 # --------------------------------------------------------------------------- #
 # Run modes (no search algorithm here — the rules do the search)              #
 # --------------------------------------------------------------------------- #
@@ -100,8 +118,7 @@ def run_astar(heuristic=h_needs, max_nodes=None, trace=False):
     engine = RoseBotEngine(heuristic=heuristic)
     engine.strategy = FStrategy()
     engine.reset()
-    engine.run()
-    return engine
+    return _run_timed(engine)
 
 
 # The "in-engine custom Strategy" mode is now the primary A* itself.
@@ -115,5 +132,5 @@ def run_dfs(trace=False, max_nodes=2000):
     engine = RoseBotEngine(heuristic=None)
     engine.reset()
     engine.declare(ShowTree())     # the print_node rule prints each state as it is generated
-    engine.run(max_nodes)          # Experta's run(limit): fire at most this many activations
-    return engine
+    # Experta's run(limit): fire at most this many activations
+    return _run_timed(engine, max_nodes)

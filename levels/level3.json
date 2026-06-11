@@ -1,0 +1,11 @@
+{
+  "name": "Level 3 — Compact (4x4, 3 pavilions)",
+  "grid": { "w": 4, "h": 4 },
+  "warehouse": [2, 2],
+  "robot_start": [4, 4],
+  "pavilions": [
+    { "id": "P1", "type": "Rose",   "pos": [1, 1], "needs": { "pink": 2, "white": 1 } },
+    { "id": "P2", "type": "Tulip",  "pos": [4, 1], "needs": { "red": 2, "yellow": 2 } },
+    { "id": "P3", "type": "Goliat", "pos": [1, 4], "needs": { "gold": 1, "lightpink": 1 } }
+  ]
+}

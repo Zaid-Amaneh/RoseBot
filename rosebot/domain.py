@@ -9,6 +9,7 @@ Coordinate convention: a position is ``(y, x)`` with ``y`` = row (1 = top) and
 
 from __future__ import annotations
 
+import json
 from math import ceil
 from typing import Iterable
 
@@ -68,6 +69,10 @@ MAX_LOAD = max(sum(p.needs.values()) for p in PAVILIONS)  # = 4
 # Convenience lookups
 PAVILION_BY_ID: dict[str, PavilionSpec] = {p.pid: p for p in PAVILIONS}
 PAVILION_AT: dict[tuple[int, int], PavilionSpec] = {p.pos: p for p in PAVILIONS}
+
+# Name of the instance currently loaded into the globals above. The hardcoded default
+# (the original assignment instance) is Level 1; ``apply_level`` overwrites it.
+LEVEL_NAME: str = "Level 1 — Original"
 
 
 # --------------------------------------------------------------------------- #
@@ -294,3 +299,116 @@ def load_batches_lower_bound(needs: Needs, load: Load) -> int:
     already_useful = total_count(load)
     deficit = max(0, outstanding - already_useful)
     return ceil(deficit / MAX_LOAD) if deficit > 0 else 0
+
+
+# --------------------------------------------------------------------------- #
+# Levels: load a problem instance from a JSON file at startup                  #
+# --------------------------------------------------------------------------- #
+# The globals above (GRID_W, GRID_H, WAREHOUSE, ROBOT_START, PAVILIONS, and the
+# derived MAX_LOAD / PAVILION_BY_ID / PAVILION_AT) describe ONE instance. Every
+# consumer reads them via ``domain.X`` at call time, so ``apply_level`` can swap
+# the whole instance once at startup (before any engine/UI is built).
+#
+# Layout-only: a level may change grid size, warehouse, robot start, and each
+# pavilion's type/position/needs. Flower TYPES and their valid COLORS stay fixed
+# (FLOWER_COLORS), so the UI color mapping never breaks.
+
+def load_level(path: str) -> dict:
+    """Read a level JSON file and return it as a plain dict (no validation yet)."""
+    with open(path, encoding="utf-8") as fh:
+        return json.load(fh)
+
+
+def validate_level(config: dict) -> None:
+    """Raise ValueError with a clear message if the level is malformed or illegal.
+
+    Checks (layout-only): grid sizes, in-grid positions, known flower types, valid
+    colors per type, positive integer counts, unique pavilion ids and positions, and
+    that no pavilion sits on the warehouse cell.
+    """
+    def err(msg: str):
+        raise ValueError(f"Invalid level: {msg}")
+
+    # --- grid -------------------------------------------------------------- #
+    grid = config.get("grid")
+    if not isinstance(grid, dict) or "w" not in grid or "h" not in grid:
+        err("missing 'grid' with integer 'w' and 'h'")
+    w, h = grid["w"], grid["h"]
+    if not (isinstance(w, int) and isinstance(h, int) and w >= 1 and h >= 1):
+        err(f"grid 'w' and 'h' must be integers >= 1 (got w={w!r}, h={h!r})")
+
+    def check_pos(label, value):
+        if (not isinstance(value, (list, tuple)) or len(value) != 2
+                or not all(isinstance(c, int) for c in value)):
+            err(f"{label} must be a [y, x] pair of integers (got {value!r})")
+        y, x = value
+        if not (1 <= y <= h and 1 <= x <= w):
+            err(f"{label} {list(value)} is outside the {w}x{h} grid")
+        return (y, x)
+
+    wh = check_pos("warehouse", config.get("warehouse"))
+    check_pos("robot_start", config.get("robot_start"))
+
+    # --- pavilions --------------------------------------------------------- #
+    pavs = config.get("pavilions")
+    if not isinstance(pavs, list) or not pavs:
+        err("'pavilions' must be a non-empty list")
+
+    seen_ids: set = set()
+    seen_pos: set = set()
+    for i, p in enumerate(pavs):
+        where = f"pavilion #{i + 1}"
+        if not isinstance(p, dict):
+            err(f"{where} must be an object")
+        pid = p.get("id")
+        if not isinstance(pid, str) or not pid:
+            err(f"{where} needs a non-empty string 'id'")
+        if pid in seen_ids:
+            err(f"duplicate pavilion id {pid!r}")
+        seen_ids.add(pid)
+
+        ftype = p.get("type")
+        if ftype not in FLOWER_COLORS:
+            err(f"{pid}: unknown flower type {ftype!r} "
+                f"(known: {', '.join(sorted(FLOWER_COLORS))})")
+
+        pos = check_pos(f"{pid} pos", p.get("pos"))
+        if pos == wh:
+            err(f"{pid} sits on the warehouse cell {list(wh)}")
+        if pos in seen_pos:
+            err(f"two pavilions share the position {list(pos)}")
+        seen_pos.add(pos)
+
+        needs = p.get("needs")
+        if not isinstance(needs, dict) or not needs:
+            err(f"{pid} needs a non-empty 'needs' object")
+        for color, count in needs.items():
+            if color not in FLOWER_COLORS[ftype]:
+                err(f"{pid}: color {color!r} is not valid for {ftype} "
+                    f"(valid: {', '.join(sorted(FLOWER_COLORS[ftype]))})")
+            if not (isinstance(count, int) and count >= 1):
+                err(f"{pid}: count for {color!r} must be an integer >= 1 (got {count!r})")
+
+
+def apply_level(config: dict) -> None:
+    """Validate ``config`` and overwrite the module's instance globals from it.
+
+    Must be called BEFORE building any engine/UI. Rebuilds the derived globals
+    (MAX_LOAD, PAVILION_BY_ID, PAVILION_AT) so everything stays consistent.
+    """
+    validate_level(config)
+    global GRID_W, GRID_H, WAREHOUSE, ROBOT_START, PAVILIONS
+    global MAX_LOAD, PAVILION_BY_ID, PAVILION_AT, LEVEL_NAME
+
+    GRID_W = config["grid"]["w"]
+    GRID_H = config["grid"]["h"]
+    WAREHOUSE = tuple(config["warehouse"])
+    ROBOT_START = tuple(config["robot_start"])
+    PAVILIONS = tuple(
+        PavilionSpec(p["id"], p["type"], tuple(p["pos"]), dict(p["needs"]))
+        for p in config["pavilions"]
+    )
+    MAX_LOAD = max(sum(p.needs.values()) for p in PAVILIONS)
+    PAVILION_BY_ID = {p.pid: p for p in PAVILIONS}
+    PAVILION_AT = {p.pos: p for p in PAVILIONS}
+    LEVEL_NAME = config.get("name", "custom")

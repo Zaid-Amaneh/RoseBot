@@ -1,58 +1,4 @@
-"""Generate a self-contained HTML visualization of the optimal A* plan.
-
-``build_payload`` packs the static scene (grid, warehouse, pavilions, colors) plus the
-per-step states into one JSON object; ``render_html`` embeds it in a standalone HTML
-file (inline CSS + JS, no server, no external assets). Open the file in any browser.
-"""
-
-import json
-
-from rosebot import domain as d
-
-# CSS colors for the flower colors used in the instance.
-COLOR_HEX = {
-    "red": "#e23b3b", "pink": "#ff8fb3", "white": "#fafafa", "crimson": "#8e1d2d",
-    "yellow": "#f2d335", "violet": "#8a5cd1", "orange": "#f08a2e", "green": "#3fa34d",
-    "mauve": "#b784a7", "purple": "#7d3cc1", "gold": "#d4af37", "lightpink": "#ffc6d9",
-}
-# Accent color per flower type (pavilion badge).
-TYPE_HEX = {"Rose": "#e23b3b", "Tulip": "#7d3cc1", "Orchid": "#9b59b6", "Goliat": "#d4af37"}
-
-
-def build_payload(states: list[dict]) -> dict:
-    return {
-        "levelName": d.LEVEL_NAME,
-        "grid": {"w": d.GRID_W, "h": d.GRID_H},
-        "warehouse": list(d.WAREHOUSE),
-        "robotStart": list(d.ROBOT_START),
-        "maxLoad": d.MAX_LOAD,
-        "colorHex": COLOR_HEX,
-        "typeHex": TYPE_HEX,
-        "pavilions": [
-            {
-                "pid": p.pid,
-                "type": p.ftype,
-                "pos": list(p.pos),
-                "needs": [[c, n] for c, n in sorted(p.needs.items())],
-            }
-            for p in d.PAVILIONS
-        ],
-        "steps": states,
-    }
-
-
-def render_html(states: list[dict]) -> str:
-    data = json.dumps(build_payload(states))
-    return _TEMPLATE.replace("/*__DATA__*/", data)
-
-
-def write_html(states: list[dict], path: str = "rosebot_ui.html") -> str:
-    with open(path, "w", encoding="utf-8") as fh:
-        fh.write(render_html(states))
-    return path
-
-
-_TEMPLATE = r"""<!doctype html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
@@ -135,7 +81,7 @@ _TEMPLATE = r"""<!doctype html>
   </div>
 </div>
 
-<script id="data" type="application/json">/*__DATA__*/</script>
+<script id="data" type="application/json">{"levelName": "Level 1 \u2014 Original", "grid": {"w": 5, "h": 5}, "warehouse": [2, 3], "robotStart": [1, 3], "maxLoad": 4, "colorHex": {"red": "#e23b3b", "pink": "#ff8fb3", "white": "#fafafa", "crimson": "#8e1d2d", "yellow": "#f2d335", "violet": "#8a5cd1", "orange": "#f08a2e", "green": "#3fa34d", "mauve": "#b784a7", "purple": "#7d3cc1", "gold": "#d4af37", "lightpink": "#ffc6d9"}, "typeHex": {"Rose": "#e23b3b", "Tulip": "#7d3cc1", "Orchid": "#9b59b6", "Goliat": "#d4af37"}, "pavilions": [{"pid": "P1", "type": "Rose", "pos": [4, 2], "needs": [["pink", 1], ["red", 2], ["white", 1]]}, {"pid": "P2", "type": "Tulip", "pos": [3, 4], "needs": [["red", 3], ["yellow", 1]]}, {"pid": "P3", "type": "Orchid", "pos": [5, 4], "needs": [["pink", 1], ["purple", 2]]}, {"pid": "P4", "type": "Goliat", "pos": [2, 5], "needs": [["gold", 2], ["lightpink", 2]]}], "steps": [{"nid": 0, "op": "INIT", "g": 0, "pos": [1, 3], "load": [], "needs": [["P1", "pink", 1], ["P1", "red", 2], ["P1", "white", 1], ["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 1, "op": "move down", "g": 1, "pos": [2, 3], "load": [], "needs": [["P1", "pink", 1], ["P1", "red", 2], ["P1", "white", 1], ["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 8, "op": "load Rose:pink x1 + Rose:red x2 + Rose:white x1", "g": 2, "pos": [2, 3], "load": [["Rose", "pink", 1], ["Rose", "red", 2], ["Rose", "white", 1]], "needs": [["P1", "pink", 1], ["P1", "red", 2], ["P1", "white", 1], ["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 41, "op": "move down", "g": 3, "pos": [3, 3], "load": [["Rose", "pink", 1], ["Rose", "red", 2], ["Rose", "white", 1]], "needs": [["P1", "pink", 1], ["P1", "red", 2], ["P1", "white", 1], ["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 47, "op": "move left", "g": 4, "pos": [3, 2], "load": [["Rose", "pink", 1], ["Rose", "red", 2], ["Rose", "white", 1]], "needs": [["P1", "pink", 1], ["P1", "red", 2], ["P1", "white", 1], ["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 119, "op": "move down", "g": 5, "pos": [4, 2], "load": [["Rose", "pink", 1], ["Rose", "red", 2], ["Rose", "white", 1]], "needs": [["P1", "pink", 1], ["P1", "red", 2], ["P1", "white", 1], ["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 120, "op": "unload P1: pink x1 + red x2 + white x1", "g": 6, "pos": [4, 2], "load": [], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 553, "op": "move up", "g": 7, "pos": [3, 2], "load": [], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 555, "op": "move right", "g": 8, "pos": [3, 3], "load": [], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 556, "op": "move up", "g": 9, "pos": [2, 3], "load": [], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 938, "op": "load Goliat:gold x2 + Goliat:lightpink x2", "g": 10, "pos": [2, 3], "load": [["Goliat", "gold", 2], ["Goliat", "lightpink", 2]], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 995, "op": "move right", "g": 11, "pos": [2, 4], "load": [["Goliat", "gold", 2], ["Goliat", "lightpink", 2]], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 997, "op": "move right", "g": 12, "pos": [2, 5], "load": [["Goliat", "gold", 2], ["Goliat", "lightpink", 2]], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2], ["P4", "gold", 2], ["P4", "lightpink", 2]]}, {"nid": 998, "op": "unload P4: gold x2 + lightpink x2", "g": 13, "pos": [2, 5], "load": [], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 2151, "op": "move left", "g": 14, "pos": [2, 4], "load": [], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 2153, "op": "move left", "g": 15, "pos": [2, 3], "load": [], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 3527, "op": "load Tulip:red x3 + Tulip:yellow x1", "g": 16, "pos": [2, 3], "load": [["Tulip", "red", 3], ["Tulip", "yellow", 1]], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 3529, "op": "move down", "g": 17, "pos": [3, 3], "load": [["Tulip", "red", 3], ["Tulip", "yellow", 1]], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 3531, "op": "move right", "g": 18, "pos": [3, 4], "load": [["Tulip", "red", 3], ["Tulip", "yellow", 1]], "needs": [["P2", "red", 3], ["P2", "yellow", 1], ["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 3532, "op": "unload P2: red x3 + yellow x1", "g": 19, "pos": [3, 4], "load": [], "needs": [["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 5919, "op": "move left", "g": 20, "pos": [3, 3], "load": [], "needs": [["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 8383, "op": "move up", "g": 21, "pos": [2, 3], "load": [], "needs": [["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 12256, "op": "load Orchid:pink x1 + Orchid:purple x2", "g": 22, "pos": [2, 3], "load": [["Orchid", "pink", 1], ["Orchid", "purple", 2]], "needs": [["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 12258, "op": "move down", "g": 23, "pos": [3, 3], "load": [["Orchid", "pink", 1], ["Orchid", "purple", 2]], "needs": [["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 12259, "op": "move down", "g": 24, "pos": [4, 3], "load": [["Orchid", "pink", 1], ["Orchid", "purple", 2]], "needs": [["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 12260, "op": "move down", "g": 25, "pos": [5, 3], "load": [["Orchid", "pink", 1], ["Orchid", "purple", 2]], "needs": [["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 12261, "op": "move right", "g": 26, "pos": [5, 4], "load": [["Orchid", "pink", 1], ["Orchid", "purple", 2]], "needs": [["P3", "pink", 1], ["P3", "purple", 2]]}, {"nid": 12262, "op": "unload P3: pink x1 + purple x2", "g": 27, "pos": [5, 4], "load": [], "needs": []}]}</script>
 <script>
 const DATA = JSON.parse(document.getElementById('data').textContent);
 const CELL = 104, GAP = 6;
@@ -275,4 +221,3 @@ render(0);
 </script>
 </body>
 </html>
-"""

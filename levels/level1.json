@@ -1,0 +1,12 @@
+{
+  "name": "Level 1 — Original",
+  "grid": { "w": 5, "h": 5 },
+  "warehouse": [2, 3],
+  "robot_start": [1, 3],
+  "pavilions": [
+    { "id": "P1", "type": "Rose",   "pos": [4, 2], "needs": { "red": 2, "pink": 1, "white": 1 } },
+    { "id": "P2", "type": "Tulip",  "pos": [3, 4], "needs": { "red": 3, "yellow": 1 } },
+    { "id": "P3", "type": "Orchid", "pos": [5, 4], "needs": { "purple": 2, "pink": 1 } },
+    { "id": "P4", "type": "Goliat", "pos": [2, 5], "needs": { "gold": 2, "lightpink": 2 } }
+  ]
+}
