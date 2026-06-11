@@ -1,8 +1,4 @@
-"""Fact definitions for experta's working memory.
 
-All nested values are immutable (tuples) so experta can match and dedup them.
-See docs/APPROACH.md section 2.
-"""
 
 import rosebot.compat  # noqa: F401  # must precede experta import
 
@@ -10,7 +6,6 @@ from experta import Fact, Field
 
 
 class Config(Fact):
-    """Static problem configuration (declared once)."""
 
     grid_w = Field(int, mandatory=True)
     grid_h = Field(int, mandatory=True)
@@ -20,7 +15,6 @@ class Config(Fact):
 
 
 class Pavilion(Fact):
-    """Static reference data for one pavilion."""
 
     pid = Field(str, mandatory=True)          # "P1".."P4"
     ftype = Field(str, mandatory=True)        # flower type
@@ -30,15 +24,6 @@ class Pavilion(Fact):
 
 
 class Node(Fact):
-    """A search-tree node — fully describes one state.
-
-    ``load``  : sorted tuple of (ftype, color, count); () = empty.
-    ``needs`` : sorted tuple of (pid, color, count) for remaining needs only.
-    ``sig``   : hashable canonical state signature (for dedup).
-    ``status``: "open" — every node is on the frontier until its generation
-                rules fire (each generation activation fires once, so a node is
-                expanded exactly once; see the move_*/load/unload rules).
-    """
 
     nid = Field(int, mandatory=True)
     parent = Field(int, mandatory=True)   # parent nid; -1 for the root
@@ -56,12 +41,10 @@ class Node(Fact):
 
 
 class Solution(Fact):
-    """Declared by the goal rule when a goal node is found."""
 
     nid = Field(int, mandatory=True)
 
 
-# --- printing (Deliverables 4 & 5), done with rules instead of Python loops --- #
 class ShowTree(Fact):
     """Trigger: print every generated state (search tree)."""
 

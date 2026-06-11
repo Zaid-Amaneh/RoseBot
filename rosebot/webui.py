@@ -1,15 +1,9 @@
-"""Generate a self-contained HTML visualization of the optimal A* plan.
 
-``build_payload`` packs the static scene (grid, warehouse, pavilions, colors) plus the
-per-step states into one JSON object; ``render_html`` embeds it in a standalone HTML
-file (inline CSS + JS, no server, no external assets). Open the file in any browser.
-"""
 
 import json
 
 from rosebot import domain as d
 
-# CSS colors for the flower colors used in the instance.
 COLOR_HEX = {
     "red": "#e23b3b", "pink": "#ff8fb3", "white": "#fafafa", "crimson": "#8e1d2d",
     "yellow": "#f2d335", "violet": "#8a5cd1", "orange": "#f08a2e", "green": "#3fa34d",

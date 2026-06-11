@@ -1,12 +1,3 @@
-"""Tkinter desktop visualization of the optimal A* plan.
-
-Opens a window with the grid drawn on a Canvas (warehouse, pavilions, moving robot)
-plus Prev / Play / Next controls and a side panel that tracks each pavilion's remaining
-needs. Requires a graphical display (Tkinter ships with CPython).
-
-Run it with:  ``uv run python main.py ui``
-"""
-
 import tkinter as tk
 
 from rosebot import domain as d

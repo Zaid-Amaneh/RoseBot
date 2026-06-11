@@ -1,35 +1,3 @@
-"""Rule engine (KnowledgeEngine) and all problem rules - pure rule-based (KBS) style.
-
-The search is driven entirely by **rules + conflict resolution**, not by a hand-written
-algorithm. The engine's **agenda is the A* frontier**: ``FStrategy`` keeps it ordered by
-``f = g + h`` (see strategy.py), so the lowest-f node's rules fire next - best-first
-search. The engine's own forward-chaining ``run()`` *is* the search loop; there is no
-external loop and no Python closed-set.
-
-Control rules and their salience (higher fires first):
-
-    violation_*          40   remove illegal nodes (guards / self-check)
-    move_* / load / unload + goal_reached
-                         20   generate successors / recognise the goal
-    print_node       S_GEN+1  print a generated state (only when ShowTree exists)
-    sol_seed/mark/print  50/40/30  print the solution path (only when ShowSolution exists)
-
-``goal_reached`` sits at the SAME salience as the generation rules on purpose. Salience is
-the agenda's primary sort key, so a higher salience would let a goal fire as soon as one is
-generated - even a sub-optimal one. At equal salience ``FStrategy`` orders by ``f``, so
-``goal_reached`` fires only when the goal node's ``f`` is the minimum on the agenda, i.e.
-no cheaper path can remain => the goal is optimal.
-
-Duplicate states are pruned by the ``_best_g`` index (a node is created only if its state
-has not already been reached at an equal-or-lower ``g``). With a consistent heuristic this
-keeps the node count finite and preserves optimality, so no closed-set fact is needed.
-
-Decisions live in the **LHS** (patterns + ``TEST`` + ``NOT``); rule bodies only declare
-successors via small expression-only helpers. State canonicalisation, distance and load
-enumeration are pure data utilities in ``domain.py`` (each search state is packed into one
-self-contained ``Node`` fact, which is what allows a branching search tree).
-"""
-
 import rosebot.compat  # noqa: F401  # must precede experta import
 
 from experta import KnowledgeEngine, DefFacts, Rule, AS, MATCH, TEST, NOT
@@ -45,26 +13,18 @@ S_GOAL = 20
 
 
 class RoseBotEngine(KnowledgeEngine):
-    """Forward-chaining, rule-driven A* search for bouquet delivery.
-
-    The agenda (ordered by FStrategy = f) is the frontier; ``run()`` is the search loop.
-    """
-
+   
     def __init__(self, heuristic=None, max_depth=None):
         super().__init__()
-        self.heuristic = heuristic  # callable(pos, load, needs) -> int, or None (h = 0)
-        self.max_depth = max_depth  # optional DFS/demo cap; None means unbounded
+        self.heuristic = heuristic  
+        self.max_depth = max_depth  
 
     # ------------------------------------------------------------------ #
     # Bookkeeping (ids / counters / dedup index; not part of reasoning)   #
     # ------------------------------------------------------------------ #
     def reset(self, **kwargs):
         self._id = 0
-        self._count = 0        # nodes created (incl. root) - for reporting only
-        # Best-g index (bookkeeping, like the id counter): the lowest g at which each state
-        # signature has been reached. It only prevents creating a redundant Node fact for a
-        # state already reached at no greater cost. Optimality holds because the heuristic
-        # is consistent, so the first time a state is reached is via an optimal path.
+        self._count = 0       
         self._best_g = {}
         super().reset(**kwargs)
 
@@ -105,7 +65,6 @@ class RoseBotEngine(KnowledgeEngine):
         needs = d.make_needs(needs)
         g = parent["g"] + 1
         sig = d.state_signature(pos, load, needs)
-        # Skip if this state was already reached at an equal or lower cost (see _best_g).
         if self._best_g.get(sig, 1 << 30) <= g:
             return
         self._best_g[sig] = g
@@ -117,36 +76,16 @@ class RoseBotEngine(KnowledgeEngine):
                           sig=sig, status="open"))
 
     def _spawn_loads(self, parent, pos, needs):
-        # Enumerating the legal/useful loads is a data utility; one child per option, then
-        # FStrategy orders the resulting nodes by f on the agenda.
         for combo in d.enumerate_loads(needs):
             self._child(parent, f"load {d.fmt_load(combo)}", pos, combo, needs)
 
-    # ------------------------------------------------------------------ #
-    # GOAL (Deliverable 4) - same salience as generation; FStrategy makes #
-    # it fire only when the goal node's f is the agenda minimum => optimal #
-    # ------------------------------------------------------------------ #
     @Rule(AS.n << Node(status="open", load=(), needs=()),
           NOT(Solution()),
           salience=S_GOAL)
     def goal_reached(self, n):
         self.declare(Solution(nid=n["nid"]))
 
-    # ------------------------------------------------------------------ #
-    # GENERATE PATH RULES (Deliverable 2) - one rule per operator.        #
-    #                                                                     #
-    # Each operator is its own production with its legality in the LHS     #
-    # (TEST / a Pavilion join), so *which* operator applies is decided by  #
-    # pattern matching, not by `if` in a body. One activation per (rule,    #
-    # node); experta fires it once, and FStrategy makes the lowest-f node   #
-    # fire next (best-first = A*). Nodes are NOT retracted: an activation   #
-    # fires once anyway, and the facts must persist for path reconstruction #
-    # and tree printing; the frontier is the set of not-yet-fired nodes.    #
-    #                                                                     #
-    # The move rules carry a not-goal guard so a satisfied goal node is     #
-    # handled only by goal_reached. (load_bouquets needs `needs != ()` and  #
-    # unload_bouquets needs `load != ()`, so neither can match a goal.)     #
-    # ------------------------------------------------------------------ #
+    
     @Rule(AS.n << Node(status="open", ry=MATCH.ry, rx=MATCH.rx,
                        load=MATCH.load, needs=MATCH.needs),
           NOT(Solution()),
@@ -183,7 +122,6 @@ class RoseBotEngine(KnowledgeEngine):
     def move_right(self, n, ry, rx, load, needs):
         self._child(n, "move right", (ry, rx + 1), load, needs)
 
-    # load: only at the warehouse, only when empty, only useful legal loads.
     @Rule(AS.n << Node(status="open", ry=MATCH.ry, rx=MATCH.rx,
                        load=(), needs=MATCH.needs),
           NOT(Solution()),
@@ -193,8 +131,6 @@ class RoseBotEngine(KnowledgeEngine):
     def load_bouquets(self, n, ry, rx, needs):
         self._spawn_loads(n, (ry, rx), needs)
 
-    # unload: only on a pavilion cell (the Pavilion join binds the cell + pid) and only when
-    # the carried load has colors that pavilion still needs.
     @Rule(AS.n << Node(status="open", ry=MATCH.ry, rx=MATCH.rx,
                        load=MATCH.load, needs=MATCH.needs),
           Pavilion(py=MATCH.ry, px=MATCH.rx, pid=MATCH.pid),
@@ -210,11 +146,7 @@ class RoseBotEngine(KnowledgeEngine):
                     d.apply_unload(load, pav, drops),
                     d.reduce_needs(needs, pid, drops))
 
-    # ------------------------------------------------------------------ #
-    # CONSTRAINT VIOLATION RULES (Deliverable 3) - guards + self-check.   #
-    # Generation is correct-by-construction, so these normally fire on    #
-    # nothing; if a guard regressed they retract the offending node.      #
-    # ------------------------------------------------------------------ #
+    
     def _violation(self, n, reason):
         print(f"[VIOLATION] node {n['nid']} ({n['op']}): {reason} -> removed")
         self.retract(n)
@@ -243,15 +175,7 @@ class RoseBotEngine(KnowledgeEngine):
     def violate_wrong_unload(self, n, load):
         self._violation(n, "invalid bouquet (color not valid for its flower type)")
 
-    # ------------------------------------------------------------------ #
-    # PRINTING (Deliverables 4 & 5) - recursive rules, not Python loops.  #
-    # Active only when a ShowTree / ShowSolution trigger fact exists.     #
-    # ------------------------------------------------------------------ #
-    # Print every generated state (search tree). Marks each node TreeShown so it prints once.
-    '''@Rule(ShowTree(),
-          AS.n << Node(nid=MATCH.id),
-          NOT(TreeShown(nid=MATCH.id)),
-          salience=S_GEN + 1)'''
+   
     @Rule(ShowTree(),
           AS.n << Node(nid=MATCH.id),
           NOT(TreeShown(nid=MATCH.id)),
@@ -263,7 +187,6 @@ class RoseBotEngine(KnowledgeEngine):
               f"load=[{d.fmt_load(n['load'])}] needs_left={d.remaining_total(n['needs'])}")
         self.declare(TreeShown(nid=id))
 
-    # Seed the solution path from the goal node, and print the header.
     @Rule(ShowSolution(),
           Solution(nid=MATCH.gid),
           Node(nid=MATCH.gid, g=MATCH.cost),
@@ -272,9 +195,8 @@ class RoseBotEngine(KnowledgeEngine):
     def sol_seed(self, gid, cost):
         print(f"\n=== Solution (total cost = {cost}) ===")
         self.declare(OnPath(nid=gid))
-        self.declare(Shown(nid=-1))  # sentinel: the root's parent is "already shown"
+        self.declare(Shown(nid=-1))  
 
-    # Walk parent links upward, marking each node on the path (recursion via chaining).
     @Rule(OnPath(nid=MATCH.c),
           Node(nid=MATCH.c, parent=MATCH.p),
           TEST(lambda p: p != -1),
@@ -283,7 +205,6 @@ class RoseBotEngine(KnowledgeEngine):
     def sol_mark(self, c, p):
         self.declare(OnPath(nid=p))
 
-    # Print path nodes in root -> goal order (a node prints once its parent has printed).
     @Rule(Shown(nid=MATCH.p),
           OnPath(nid=MATCH.c),
           Node(nid=MATCH.c, parent=MATCH.p, op=MATCH.op, g=MATCH.g),
