@@ -1,12 +1,3 @@
-"""Domain definitions and pure helpers (no experta import).
-
-Single source of truth for the problem instance and for legality/geometry checks.
-Everything here is plain Python and unit-testable on its own.
-
-Coordinate convention: a position is ``(y, x)`` with ``y`` = row (1 = top) and
-``x`` = column (1 = left). See docs/REQUIREMENTS_DETAILED.md.
-"""
-
 from __future__ import annotations
 
 import json

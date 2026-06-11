@@ -125,11 +125,12 @@ def run_astar(heuristic=h_needs, max_nodes=None, trace=False):
 run_astar_strategy = run_astar
 
 
-def run_dfs(trace=False, max_nodes=2000):
+def run_dfs(trace=False, max_nodes=2000, max_depth=None):
     """Deliverable 5: run under Experta's default Recency/Depth-First strategy, bounded to
-    ``max_nodes`` activations so the generated search tree stays printable.
+    ``max_nodes`` activations and optionally ``max_depth`` so the generated search tree stays
+    printable.
     """
-    engine = RoseBotEngine(heuristic=None)
+    engine = RoseBotEngine(heuristic=None, max_depth=max_depth)
     engine.reset()
     engine.declare(ShowTree())     # the print_node rule prints each state as it is generated
     # Experta's run(limit): fire at most this many activations

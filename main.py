@@ -70,7 +70,12 @@ def main(argv: list[str]) -> int:
         "--level", default=None,
         help="level to solve: a number (1, 2, ...) or a path to a .json file "
              "(default: levels/level1.json)")
+    parser.add_argument(
+        "--max-depth", type=int, default=4,
+        help="maximum search-tree depth for dfs mode (default: 4)")
     args = parser.parse_args(argv[1:])
+    if args.max_depth < 0:
+        parser.error("--max-depth must be zero or greater")
 
     rc = load_selected_level(args.level)
     if rc != 0:
@@ -80,8 +85,9 @@ def main(argv: list[str]) -> int:
     if mode == "dfs":
         print("=== Deliverable 5: Search Tree (default Recency / Depth-First) ===")
         print("(showing the first generated states; the full state space is large,")
-        print(" so use 'astar' to find the optimal solution)\n")
-        engine = search.run_dfs(max_nodes=150)  # prints the tree as it is generated
+        print(" so use 'astar' to find the optimal solution)")
+        print(f"(max depth = {args.max_depth})\n")
+        engine = search.run_dfs(max_nodes=150, max_depth=args.max_depth)
         search.print_solve_time(engine)
         if search.solution_node(engine) is not None:
             search.print_solution(engine)

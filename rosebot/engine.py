@@ -11,7 +11,7 @@ Control rules and their salience (higher fires first):
     violation_*          40   remove illegal nodes (guards / self-check)
     move_* / load / unload + goal_reached
                          20   generate successors / recognise the goal
-    print_node            1   print a generated state (only when ShowTree exists)
+    print_node       S_GEN+1  print a generated state (only when ShowTree exists)
     sol_seed/mark/print  50/40/30  print the solution path (only when ShowSolution exists)
 
 ``goal_reached`` sits at the SAME salience as the generation rules on purpose. Salience is
@@ -50,9 +50,10 @@ class RoseBotEngine(KnowledgeEngine):
     The agenda (ordered by FStrategy = f) is the frontier; ``run()`` is the search loop.
     """
 
-    def __init__(self, heuristic=None):
+    def __init__(self, heuristic=None, max_depth=None):
         super().__init__()
         self.heuristic = heuristic  # callable(pos, load, needs) -> int, or None (h = 0)
+        self.max_depth = max_depth  # optional DFS/demo cap; None means unbounded
 
     # ------------------------------------------------------------------ #
     # Bookkeeping (ids / counters / dedup index; not part of reasoning)   #
@@ -98,6 +99,8 @@ class RoseBotEngine(KnowledgeEngine):
     # Successor declaration (expression-only helpers, no if/for control) #
     # ------------------------------------------------------------------ #
     def _child(self, parent, op, pos, load, needs):
+        if self.max_depth is not None and parent["depth"] >= self.max_depth:
+            return
         load = d.make_load(load)
         needs = d.make_needs(needs)
         g = parent["g"] + 1
@@ -245,6 +248,10 @@ class RoseBotEngine(KnowledgeEngine):
     # Active only when a ShowTree / ShowSolution trigger fact exists.     #
     # ------------------------------------------------------------------ #
     # Print every generated state (search tree). Marks each node TreeShown so it prints once.
+    '''@Rule(ShowTree(),
+          AS.n << Node(nid=MATCH.id),
+          NOT(TreeShown(nid=MATCH.id)),
+          salience=S_GEN + 1)'''
     @Rule(ShowTree(),
           AS.n << Node(nid=MATCH.id),
           NOT(TreeShown(nid=MATCH.id)),
